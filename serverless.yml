@@ -1,0 +1,33 @@
+service: handler-cias-evolving
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  httpApi:
+    cors:
+      allowedOrigins:
+        - '*'
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+
+functions:
+  api:
+    handler: index.handler
+    events:
+      - httpApi:
+          path: /companias
+          method: ANY
+
+      - httpApi:
+          path: /companias/{id}
+          method: ANY
+
+plugins:
+  - serverless-offline
