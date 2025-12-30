@@ -1,5 +1,7 @@
 import * as ciaRepository from '../repositories/ciaRepository.js';
-import { validateJWT, validateSecurityAccess } from './authService.js';
+import { getUserFromEvent, validateSecurityAccess } from './authService.js';
+import { createDefaultMeUser } from './meService.js';
+import { createDefaultOrg } from './orgService.js';
 
 /**
  * 
@@ -9,9 +11,10 @@ import { validateJWT, validateSecurityAccess } from './authService.js';
  */
 export const getCias = async (event) => { 
   // Validar JWT
-  const user = validateJWT(event);
+  const user = getUserFromEvent(event); // obtenemos id_employee + jwt
 
   console.log("idEmployee en sesion: ",user.id_employee);
+
   // Validar permisos
   await validateSecurityAccess(user.id_employee);
 
@@ -73,9 +76,28 @@ export const createCia = async (user, ciaData) => {
 
   try {
     const response = await ciaRepository.insertCia(ciaData, user.id_employee);
+ 
+    const id_bu = response.insertId;
+    const jwt = user.jwt; //token jwt del usuario en sesion
+
+    console.log('ID de la nueva compañía (id_bu):', id_bu, ' y JWT del usuario:', jwt);
+    
+    //Crear usuario default ME
+    const idEmployeeNuevo = await createDefaultMeUser({
+      jwt,
+      id_bu
+    });
+
+    //Crear estructura ORG
+    await createDefaultOrg({
+      jwt,
+      idEmployeeNuevo,
+      id_bu
+    });
+   
     return {
       statusCode: 201,
-      body: JSON.stringify(response, null, 2)
+      body: JSON.stringify({ ...response, usuarioDefault: idEmployeeNuevo }, null, 2)
     };
   } catch (err) {
     console.error('Error createCia:', err);

@@ -1,5 +1,5 @@
 import * as ciaService from '../services/ciaService.js';
-import { validateJWT } from '../services/authService.js'; 
+import { getUserFromEvent } from '../services/authService.js';
 
 /**
  * 
@@ -27,7 +27,7 @@ export const crearCiaHandler = async (event) => {
  
   try {
  
-    const user = validateJWT(event);             // valida una vez
+    const user = getUserFromEvent(event);             // valida una vez
     const body = JSON.parse(event.body);         // parsea body JSON
     return await ciaService.createCia(user, body); // pasa user y body
 
