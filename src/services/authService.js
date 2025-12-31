@@ -5,11 +5,10 @@ import { pool } from '../utils/db.js';
  * Valida y decodifica un JWT
  */
 export const validateJWT = (event) => {
-  console.log('Headers recibidos:', event.headers);
 
   const auth = event.headers?.authorization || event.headers?.Authorization;
-  console.log('Authorization header:', auth);
 
+  // Validar existencia del header
   if (!auth) {
     const e = new Error('Authorization header missing');
     e.statusCode = 401;
@@ -24,6 +23,13 @@ export const validateJWT = (event) => {
   }
 
   const token = auth.replace(/^Bearer\s+/i, '').trim();
+  
+  //blindaje mínimo contra tokens malformados
+  if (token.split('.').length !== 3) {
+    const e = new Error('Malformed JWT');
+    e.statusCode = 401;
+    throw e;
+  }
 
   try {
     console.log('Token recibido:', token);
@@ -52,7 +58,7 @@ export const getUserFromEvent = (event) => {
   const authHeader = event.headers?.authorization || event.headers?.Authorization;
 
   if (!authHeader) {
-    // ⚠️ Solo para desarrollo local
+    // Solo para desarrollo local
     console.warn('Authorization header missing, usando user default para desarrollo');
     return { id_employee: 1, jwt: 'dev-token' };
   }

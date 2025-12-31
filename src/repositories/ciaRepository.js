@@ -74,11 +74,13 @@ export const insertCia = async (ciaData, userId) => {
     ];
 
     const [insertResult] = await connection.query(sqlInsert, valuesInsert);
+
+    //obtiene el id insertado para usarlo como id_bu
     const insertedId = insertResult.insertId;
 
     console.log(`Nueva compañía insertada con Id: ${insertedId}`);
 
-    // Actualizar id_bu con el mismo ID
+    // Actualizar id_bu con el mismo ID insertado
     const sqlUpdate = `UPDATE me_cat_simplecatalogdetail SET id_bu = ? WHERE Id = ?`;
     await connection.query(sqlUpdate, [insertedId, insertedId]);
         
@@ -155,6 +157,7 @@ export const insertCia = async (ciaData, userId) => {
     */
     await connection.commit();
 
+    //retornar datos de la nueva compañía
     return {
       insertId: insertedId,
       compania: {

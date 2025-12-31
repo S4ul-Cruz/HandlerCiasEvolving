@@ -2,6 +2,7 @@ import * as ciaRepository from '../repositories/ciaRepository.js';
 import { getUserFromEvent, validateSecurityAccess } from './authService.js';
 import { createDefaultMeUser } from './meService.js';
 import { createDefaultOrg } from './orgService.js';
+import { resolveMeEmployeeId } from './meService.js';
 
 /**
  * 
@@ -75,35 +76,59 @@ export const createCia = async (user, ciaData) => {
   }
 
   try {
-    const response = await ciaRepository.insertCia(ciaData, user.id_employee);
+    const response = await ciaRepository.insertCia(ciaData,user.id_employee);
  
+    // ID de la nueva compañía
     const id_bu = response.insertId;
     const jwt = user.jwt; //token jwt del usuario en sesion
 
-    console.log('ID de la nueva compañía (id_bu):', id_bu, ' y JWT del usuario:', jwt);
-    
-    //Crear usuario default ME
-    const idEmployeeNuevo = await createDefaultMeUser({
-      jwt,
-      id_bu
-    });
+    console.log('Compañía creada:', id_bu);
 
-    //Crear estructura ORG
-    await createDefaultOrg({
-      jwt,
-      idEmployeeNuevo,
-      id_bu
-    });
-   
+    // Proceso async independiente
+    (async () => {
+      try {
+
+        // Crear usuario default ME
+        await createDefaultMeUser({ jwt, id_bu });
+
+        // Obtener ID del nuevo empleado ME creado por email y id_bu de la cia
+        const idEmployeeNuevo = await resolveMeEmployeeId({
+          email: 'contacto@evolvingtogether.mx',
+          id_bu
+        });
+
+        console.log('Usuario default ME creado:', idEmployeeNuevo);
+
+        // Crear organización default en ORG
+        await createDefaultOrg({
+          id_employeeSesion: user.id_employee, // ID del empleado en sesión
+          idEmployeeNuevo,
+          id_bu
+        });
+
+        console.log('ORG creado correctamente para id_bu:', id_bu);
+
+      } catch (err) {
+        console.error('ME / ORG ERROR:', err.message); 
+      }
+    })();
+
+    // Respuesta inmediata al frontend
     return {
       statusCode: 201,
-      body: JSON.stringify({ ...response, usuarioDefault: idEmployeeNuevo }, null, 2)
+      body: JSON.stringify({
+        id_bu,
+        message: 'Compañía creada correctamente'
+      })
     };
   } catch (err) {
     console.error('Error createCia:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Error al crear compañía', details: err.message })
+      body: JSON.stringify({
+        error: 'Error al crear compañía',
+        details: err.message
+      })
     };
   }
 };
